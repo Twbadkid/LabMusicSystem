@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="ntuApp">
+<!-- Copyright MizTech -->
+<!-- Licensed MikeZheng -->
+<!-- http: //mike-zheng.github.io/ -->
+<!--  
+           _   _____         _     
+          (_) |_   _|       | |    
+ _ __ ___  _ ___| | ___  ___| |__  
+| '_ ` _ \| |_  / |/ _ \/ __| '_ \ 
+| | | | | | |/ /| |  __/ (__| | | |
+|_| |_| |_|_/___\_/\___|\___|_| |_|
+
+               mike-zheng.github.io
+               2016/11/20
+
+-->
+
+<head>
+    <meta charset="UTF-8">
+    <title clearfix>NTU ICAN Youtube Player</title clearfix>
+    <meta name="viewport" content="width=device-width">
+    <ink rel="Shortcut Icon" type="image/x-icon" href="image/icon_s.png" />
+    <link rel="icon" href="image/icon_s.png">
+    <link rel="apple-touch-icon" href="image/icon_s.png">
+    <link rel="apple-touch-icon-precomposed" href="image/icon_s.png">
+    <meta name="description" content="Youtube Player">
+    <meta property="og:type" content="article">
+    <meta property="og:title clearfix" content="Youtube Player">
+    <meta property="og:url" content="https://mike-zheng.github.io/NTU-ICAN-YOUTUBE-PLAYER/">
+    <meta property="og:site_name" content="Youtube Player">
+    <meta property="og:description" content="Youtube Player">
+    <meta property="og:image" content="image/web-screenshot.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title clearfix" content="Youtube Player">
+    <meta name="twitter:description" content="Youtube Player">
+    <link rel="stylesheet" href="css/mizUI.css">
+    <script src="js/angular.min.js"></script>
+    <script src="https://apis.google.com/js/client.js?onload=init"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="js/mizUI.js"></script>
+</head>
+
+<body ng-controller="MusicPlayerController" w-mousetrap="{'i+c+a+n': switchLabMode}">
+    <div class="miz-player" ng-init="init()">
+        <div class="search-area">
+            <div class="search-container">
+                <div class="miz search">
+                    <input id="queryInput" placeholder="搜尋關鍵字" class="search-bar" type="text" ng-model="searchQuery" press-enter="search(searchQuery)">
+                    <button id="searchButton" class="search-button" ng-click="search(searchQuery)">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="tools">
+            <ul>
+                <li aria-label="Click to open my favorite list." ng-class="{'active':isFavoriteMode}" class="hint--top" ng-click="switchFavorite(true)"><i class="fa fa-star" aria-hidden="true"></i>My favorite</li>
+                <li aria-label="Click to search result." ng-class="{'active':!isFavoriteMode}" ng-click="switchFavorite(false)" class="hint--top"><i class="fa fa-youtube-play" aria-hidden="true"></i>Search result</li>
+            </ul>
+        </div>
+        <div class="music-cards">
+            <div class="lab-tool" ng-if="labMode">
+                <div class="lab-buttons-container">
+                    <div class="lab-buttons">
+                        <div class="left-button" ng-click="labPause()"> <i class="fa fa-pause" aria-hidden="true"></i></div>
+                        |
+                        <div class="right-button" ng-click="labStop()"><i class="fa fa-stop" aria-hidden="true"></i></div>
+                    </div>
+                </div>
+                <div class="volume-container">
+                    <div class="left clearfix"><i class="fa fa-volume-off" aria-hidden="true"></i></div>
+                    <div class="center clearfix">
+                        <!-- <input type="range"> -->
+                        <rzslider rz-slider-model="slider.value" rz-slider-options="slider.options"></rzslider>
+                    </div>
+                    <div class="right clearfix"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
+                </div>
+            </div>
+            <div class="spin" ng-if="searching" ng-class="{'lab-mode':labMode}">
+                <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+            </div>
+            <ul ng-if="!searching" ng-class="{'lab-mode':labMode}">
+                <li ng-repeat="musicCard in musicLists" ng-click="selectMusicCard(musicCard)">
+                    <div class="music-card " ng-class="{'active':musicCard.isSelect}">
+                        <div class="card-line" ng-mouseenter="musicCard.marquee.scroll=true;" ng-mouseleave="musicCard.marquee.scroll=false;">
+                            <div class="music-icon clearfix"><i class="fa fa-music" aria-hidden="true"></i></div>
+                            <div class="title clearfix">
+                                <!-- <h4 class="hint--top" aria-label="{{musicCard.title}}">{{musicCard.title}}</h4> -->
+                                <div angular-marquee class="title-name" scroll="musicCard.marquee.scroll" duration="duration">{{musicCard.title}}</div>
+                            </div>
+                            <div class="card-tools">
+                                <div class="tool hint--left" aria-label="Add to my favorite lists." ng-click="addToMyFavorite($event,musicCard)">
+                                    <!-- <i ng-if="!musicCard.isFavorite" class="fa fa-star-o" aria-hidden="true"></i> -->
+                                    <i ng-class="{'favorite fa-star':musicCard.isFavorite,'fa-star-o':!musicCard.isFavorite}" class="fa " aria-hidden="true"></i>
+                                </div>
+                                <div ng-if="labMode" class="tool hint--left" aria-label="Play the music+" ng-click="addToPlayerList($event,musicCard)">
+                                    <div class="circle ">
+                                        <i class="fa fa-plus" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                                <div class="tool hint--left" aria-label="Play." ng-click="playVideo($event,musicCard)">
+                                    <div class="circle">
+                                        <i class="fa fa-play" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="underline clearfix"></div>
+                        </div>
+                        <div class="card-info" ng-show="musicCard.isSelect" ng-class="{'show':musicCard.isSelect}">
+                            <div class="card-info-container">
+                                <div class="card-image" ng-style="{'background-image': 'url({{musicCard.image}})'}"></div>
+                                <div class="card-content">
+                                    <h4>{{musicCard.title}}</h4>
+                                    <p>{{musicCard.description}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="tool-footer">
+            <div ng-if="!searching&&!broadCasting"><i class="fa fa-search" aria-hidden="true"></i>
+                <span>找到{{musicLists.length}}個搜尋結果</span></div>
+            <div ng-if="searching&&!broadCasting">
+                <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+                <span class="sr-only">搜尋中...</span></div>
+            <div ng-if="broadCasting" angular-marquee scroll="isBroadCastMarquee" duration="duration">{{broadCast}}</div>
+        </div>
+    </div>
+    <div class="miz-main">
+        <div class="video-container">
+            <div class="video">
+                <youtube-video player-vars="playerVars" video-id="currentYoutubeVideo" player="VideoPlayer" player-width="'100%'" player-height="'100%'"></youtube-video>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
